@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>飞书计划表</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg2: #f5f5f4;
+    --bg3: #eeede9;
+    --border: #e0dfd9;
+    --border2: #d3d1c7;
+    --text: #1a1a18;
+    --text2: #5f5e5a;
+    --text3: #9d9b95;
+    --radius: 8px;
+    --radius-sm: 5px;
+    --accent: #185FA5;
+    --accent-light: #E6F1FB;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; background: var(--bg2); color: var(--text); min-height: 100vh; }
+
+  .app-wrap { max-width: 1100px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+
+  /* Header */
+  .app-header { display: flex; align-items: center; gap: 10px; margin-bottom: 1.25rem; flex-wrap: wrap; }
+  .app-logo { display: flex; align-items: center; gap: 8px; font-size: 17px; font-weight: 700; color: var(--text); }
+  .app-logo-icon { width: 32px; height: 32px; background: var(--accent); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 17px; }
+  .spacer { flex: 1; }
+  .nav-btn { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-sm); padding: 5px 9px; cursor: pointer; font-size: 13px; color: var(--text2); }
+  .nav-btn:hover { background: var(--bg2); }
+  .period-label { font-size: 15px; font-weight: 600; color: var(--text); min-width: 130px; }
+  .view-tabs { display: flex; gap: 3px; background: var(--bg2); border-radius: var(--radius-sm); padding: 3px; border: 0.5px solid var(--border); }
+  .view-tab { border: none; background: none; padding: 5px 13px; border-radius: var(--radius-sm); font-size: 12px; cursor: pointer; color: var(--text2); }
+  .view-tab.active { background: var(--bg); color: var(--text); font-weight: 600; border: 0.5px solid var(--border2); }
+  .add-btn { display: flex; align-items: center; gap: 5px; background: var(--accent); border: none; border-radius: var(--radius-sm); padding: 7px 14px; cursor: pointer; font-size: 13px; color: #fff; font-weight: 500; }
+  .add-btn:hover { background: #0C447C; }
+
+  /* Legend */
+  .legend { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; margin-bottom: .75rem; }
+  .legend-chip { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text2); cursor: pointer; padding: 3px 8px; border-radius: 100px; border: 0.5px solid var(--border); background: var(--bg); }
+  .legend-chip:hover { border-color: var(--accent); color: var(--accent); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .legend-add { font-size: 11px; color: var(--text3); cursor: pointer; padding: 3px 9px; border: 0.5px dashed var(--border2); border-radius: 100px; background: none; }
+  .legend-add:hover { color: var(--text2); border-color: var(--accent); }
+  .legend-sep { width: 1px; height: 16px; background: var(--border); margin: 0 2px; }
+  .legend-status { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text3); padding: 3px 7px; }
+
+  /* Overdue banner */
+  .overdue-banner { display: flex; align-items: center; gap: 8px; background: #FCEBEB; border: 0.5px solid #F09595; border-radius: var(--radius); padding: 8px 14px; margin-bottom: .85rem; font-size: 12px; color: #791F1F; }
+
+  /* Calendar */
+  .calendar-wrap { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+  .day-header { background: var(--bg2); padding: 7px 0; text-align: center; font-size: 11px; font-weight: 600; color: var(--text3); letter-spacing: .4px; border-bottom: 0.5px solid var(--border); }
+  .day-cell { border-right: 0.5px solid var(--border); border-bottom: 0.5px solid var(--border); padding: 6px; min-height: 96px; cursor: pointer; background: var(--bg); transition: background .1s; }
+  .day-cell:nth-child(7n) { border-right: none; }
+  .day-cell:hover { background: var(--bg2); }
+  .day-cell.other-month { background: var(--bg2); }
+  .day-cell.other-month .day-num { color: var(--text3); }
+  .day-cell.today { background: #f0f6ff; }
+  .day-cell.today .day-num { background: var(--accent); color: #fff; }
+  .day-num { font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 4px; display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; }
+  .task-chip { display: flex; align-items: center; gap: 3px; font-size: 10px; padding: 2px 6px; border-radius: 3px; margin-bottom: 2px; cursor: pointer; overflow: hidden; }
+  .task-chip .chip-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+  .task-chip.done .chip-name { text-decoration: line-through; opacity: .5; }
+  .chip-prio { font-size: 9px; flex-shrink: 0; font-weight: 700; }
+  .more-tasks { font-size: 10px; color: var(--text3); cursor: pointer; padding: 1px 4px; }
+  .more-tasks:hover { color: var(--text2); }
+
+  /* List view */
+  .list-wrap { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .list-section-hd { display: flex; align-items: center; gap: 6px; background: var(--bg2); padding: 8px 16px; font-size: 12px; font-weight: 600; color: var(--text2); border-bottom: 0.5px solid var(--border); }
+  .list-row { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 0.5px solid var(--border); cursor: pointer; transition: background .1s; }
+  .list-row:hover { background: var(--bg2); }
+  .list-row:last-child { border-bottom: none; }
+  .row-check { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--border2); cursor: pointer; background: none; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--text3); }
+  .row-check.done { background: #0F6E56; border-color: #0F6E56; color: #E1F5EE; }
+  .row-check:hover { border-color: var(--accent); }
+  .row-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .row-name { flex: 1; font-size: 13px; color: var(--text); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row-name.done { text-decoration: line-through; color: var(--text3); }
+  .badge { font-size: 11px; padding: 2px 7px; border-radius: 100px; font-weight: 500; white-space: nowrap; }
+  .row-cat-tag { font-size: 11px; color: var(--text3); background: var(--bg2); padding: 2px 7px; border-radius: 100px; white-space: nowrap; border: 0.5px solid var(--border); }
+  .row-date { font-size: 11px; color: var(--text3); white-space: nowrap; }
+  .empty-state { text-align: center; padding: 3rem; color: var(--text3); font-size: 13px; }
+  .empty-icon { font-size: 28px; display: block; margin-bottom: 10px; }
+
+  /* Markdown export panel */
+  .md-panel { margin-top: 1rem; background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .md-panel-hd { display: flex; align-items: center; justify-content: space-between; padding: 9px 14px; background: var(--bg2); border-bottom: 0.5px solid var(--border); }
+  .md-panel-title { font-size: 12px; font-weight: 600; color: var(--text2); display: flex; align-items: center; gap: 6px; }
+  .md-copy-btn { display: flex; align-items: center; gap: 5px; background: var(--accent); border: none; border-radius: var(--radius-sm); padding: 5px 13px; cursor: pointer; font-size: 12px; color: #fff; font-weight: 500; }
+  .md-copy-btn:hover { background: #0C447C; }
+  .md-copy-btn.ok { background: #0F6E56; }
+  .md-hint { font-size: 11px; color: var(--text3); padding: 6px 14px; background: #fffbf0; border-bottom: 0.5px solid #f0dfa0; }
+  .md-textarea { width: 100%; font-family: "Courier New", monospace; font-size: 12px; padding: 12px 14px; border: none; background: var(--bg); color: var(--text2); resize: vertical; min-height: 160px; outline: none; line-height: 1.65; }
+
+  /* Modals */
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 1rem; }
+  .modal { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 1.5rem; width: 380px; max-width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,.12); }
+  .modal h3 { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 1.1rem; }
+  .form-label { font-size: 12px; color: var(--text2); display: block; margin-bottom: 4px; margin-top: 12px; }
+  .form-input { width: 100%; font-size: 13px; padding: 7px 10px; border: 0.5px solid var(--border2); border-radius: var(--radius-sm); background: var(--bg); color: var(--text); outline: none; }
+  .form-input:focus { border-color: var(--accent); }
+  textarea.form-input { resize: vertical; min-height: 52px; }
+  .form-row { display: flex; gap: 7px; align-items: center; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 1.25rem; }
+  .btn-ghost { background: none; border: 0.5px solid var(--border2); border-radius: var(--radius-sm); padding: 7px 16px; font-size: 13px; cursor: pointer; color: var(--text2); }
+  .btn-ghost:hover { background: var(--bg2); }
+  .btn-primary { background: var(--accent); border: none; border-radius: var(--radius-sm); padding: 7px 16px; font-size: 13px; cursor: pointer; color: #fff; font-weight: 600; }
+  .btn-primary:hover { background: #0C447C; }
+  .color-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .color-swatch { width: 24px; height: 24px; border-radius: 50%; cursor: pointer; border: 2.5px solid transparent; transition: transform .1s; }
+  .color-swatch.selected { border-color: var(--text); transform: scale(1.15); }
+
+  /* Detail panel */
+  .detail-modal { width: 340px; }
+  .detail-modal h3 { font-size: 16px; }
+  .detail-meta { font-size: 12px; color: var(--text2); display: flex; flex-direction: column; gap: 6px; margin: .75rem 0; }
+  .detail-meta span { display: flex; align-items: center; gap: 6px; }
+  .detail-note { font-size: 12px; color: var(--text3); margin-bottom: .75rem; padding: 8px 10px; background: var(--bg2); border-radius: var(--radius-sm); }
+  .detail-actions { display: flex; gap: 7px; flex-wrap: wrap; }
+  .btn-success { background: #0F6E56; border: none; border-radius: var(--radius-sm); padding: 6px 13px; font-size: 12px; cursor: pointer; color: #E1F5EE; font-weight: 500; }
+  .btn-warn { background: #3B6D11; border: none; border-radius: var(--radius-sm); padding: 6px 13px; font-size: 12px; cursor: pointer; color: #EAF3DE; font-weight: 500; }
+  .btn-sm { background: none; border: 0.5px solid var(--border2); border-radius: var(--radius-sm); padding: 6px 13px; font-size: 12px; cursor: pointer; color: var(--text2); }
+  .btn-sm:hover { background: var(--bg2); }
+  .btn-danger { background: #A32D2D; border: none; border-radius: var(--radius-sm); padding: 6px 13px; font-size: 12px; cursor: pointer; color: #fff; font-weight: 500; }
+  .btn-danger:hover { background: #7A1F1F; }
+
+  /* Inline confirm box (replaces browser confirm()) */
+  .confirm-box { background: #FFF5F5; border: 1px solid #F09595; border-radius: var(--radius); padding: 12px 14px; margin-top: 10px; display: none; }
+  .confirm-box p { font-size: 12px; color: #5A1A1A; margin-bottom: 10px; }
+  .confirm-box-actions { display: flex; gap: 8px; }
+
+  /* Toast */
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1a1a18; color: #fff; font-size: 13px; padding: 9px 20px; border-radius: 100px; z-index: 999; opacity: 0; transition: opacity .25s; pointer-events: none; white-space: nowrap; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="app-wrap">
+  <!-- Header -->
+  <div class="app-header">
+    <div class="app-logo">
+      <div class="app-logo-icon"><i class="ti ti-calendar-event"></i></div>
+      我的计划表
+    </div>
+    <div class="spacer"></div>
+    <button class="nav-btn" id="prevBtn"><i class="ti ti-chevron-left"></i></button>
+    <span class="period-label" id="periodLabel"></span>
+    <button class="nav-btn" id="nextBtn"><i class="ti ti-chevron-right"></i></button>
+    <button class="nav-btn" id="todayBtn">今天</button>
+    <div class="view-tabs">
+      <button class="view-tab active" data-v="cal">日历</button>
+      <button class="view-tab" data-v="week">周</button>
+      <button class="view-tab" data-v="month">月</button>
+    </div>
+    <button class="add-btn" id="addBtn"><i class="ti ti-plus" style="font-size:14px"></i> 添加计划</button>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend" id="legend"></div>
+
+  <!-- Overdue banner -->
+  <div id="overdue-wrap"></div>
+
+  <!-- Main content -->
+  <div id="main-area"></div>
+
+  <!-- Markdown export (list views only) -->
+  <div class="md-panel" id="md-panel" style="display:none">
+    <div class="md-panel-hd">
+      <span class="md-panel-title"><i class="ti ti-markdown" style="font-size:14px"></i> 导出到飞书 · Markdown 表格</span>
+      <button class="md-copy-btn" id="md-copy-btn"><i class="ti ti-copy" style="font-size:12px"></i> 全选并复制</button>
+    </div>
+    <div class="md-hint">💡 点击「全选并复制」→ 打开飞书文档 → 粘贴（Ctrl+V / ⌘V），飞书会自动渲染成表格</div>
+    <textarea class="md-textarea" id="md-textarea" readonly spellcheck="false"></textarea>
+  </div>
+</div>
+
+<!-- Task Modal -->
+<div id="task-modal" style="display:none" class="overlay">
+  <div class="modal">
+    <h3 id="modal-title">添加计划</h3>
+    <label class="form-label">任务名称 *</label>
+    <input class="form-input" type="text" id="f-name" placeholder="输入计划内容...">
+    <label class="form-label">开始日期</label>
+    <input class="form-input" type="date" id="f-start">
+    <label class="form-label">结束日期</label>
+    <input class="form-input" type="date" id="f-end">
+    <label class="form-label">类别</label>
+    <div class="form-row">
+      <select class="form-input" id="f-cat" style="flex:1"></select>
+      <button class="btn-ghost" id="new-cat-btn" style="white-space:nowrap;padding:7px 10px;font-size:12px">+ 新建类别</button>
+    </div>
+    <label class="form-label">优先级</label>
+    <select class="form-input" id="f-prio">
+      <option value="high">🔴 高优先级</option>
+      <option value="mid" selected>🟡 中优先级</option>
+      <option value="low">🟢 低优先级</option>
+      <option value="none">⚪ 无</option>
+    </select>
+    <label class="form-label">备注</label>
+    <textarea class="form-input" id="f-note" placeholder="可选备注..."></textarea>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="m-cancel">取消</button>
+      <button class="btn-primary" id="m-save">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Cat Modal -->
+<div id="cat-modal" style="display:none" class="overlay">
+  <div class="modal" style="width:300px">
+    <h3 id="cat-modal-title">新建类别</h3>
+    <label class="form-label">类别名称 *</label>
+    <input class="form-input" type="text" id="c-name" placeholder="例如：旅行、副业...">
+    <label class="form-label">颜色</label>
+    <div class="color-row" id="color-row"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="c-cancel">取消</button>
+      <button class="btn-primary" id="c-save">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div id="detail-modal" style="display:none" class="overlay">
+  <div class="modal detail-modal">
+    <h3 id="d-name"></h3>
+    <div class="detail-meta" id="d-meta"></div>
+    <div id="d-note"></div>
+    <div class="detail-actions" id="d-actions"></div>
+    <div class="confirm-box" id="confirm-box">
+      <p>确认删除这个任务？删除后不可恢复。</p>
+      <div class="confirm-box-actions">
+        <button class="btn-danger" id="confirm-yes">确认删除</button>
+        <button class="btn-sm" id="confirm-no">取消</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+const PALETTE=[
+  {dot:'#185FA5',bg:'#E6F1FB',text:'#042C53'},
+  {dot:'#534AB7',bg:'#EEEDFE',text:'#26215C'},
+  {dot:'#0F6E56',bg:'#E1F5EE',text:'#04342C'},
+  {dot:'#3B6D11',bg:'#EAF3DE',text:'#173404'},
+  {dot:'#854F0B',bg:'#FAEEDA',text:'#412402'},
+  {dot:'#993C1D',bg:'#FAECE7',text:'#4A1B0C'},
+  {dot:'#993556',bg:'#FBEAF0',text:'#4B1528'},
+  {dot:'#5F5E5A',bg:'#F1EFE8',text:'#2C2C2A'},
+  {dot:'#1A7FB5',bg:'#E8F4FC',text:'#0A3050'},
+  {dot:'#B05C00',bg:'#FCF0E6',text:'#3D1F00'},
+];
+const PRIO={
+  high:{label:'高',emoji:'🔴',bg:'#FCEBEB',color:'#791F1F'},
+  mid:{label:'中',emoji:'🟡',bg:'#FAEEDA',color:'#412402'},
+  low:{label:'低',emoji:'🟢',bg:'#EAF3DE',color:'#173404'},
+  none:{label:'',emoji:'',bg:'',color:''}
+};
+const DEFAULT_CATS=[
+  {id:'work',name:'工作',palette:0},
+  {id:'study',name:'学习',palette:1},
+  {id:'life',name:'生活',palette:2},
+  {id:'health',name:'健康',palette:3},
+  {id:'other',name:'其他',palette:7}
+];
+
+let tasks=[],cats=[],view='cal',curDate=new Date(),editId=null,editCatId=null,selPalette=0,catCb=null;
+
+function load(){
+  try{tasks=JSON.parse(localStorage.getItem('fp_tasks')||'[]')}catch(e){tasks=[]}
+  try{cats=JSON.parse(localStorage.getItem('fp_cats')||'null')||JSON.parse(JSON.stringify(DEFAULT_CATS))}catch(e){cats=JSON.parse(JSON.stringify(DEFAULT_CATS))}
+}
+function save(){
+  try{localStorage.setItem('fp_tasks',JSON.stringify(tasks));localStorage.setItem('fp_cats',JSON.stringify(cats))}catch(e){}
+}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+function fmt(d){return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())}
+function p2(n){return String(n).padStart(2,'0')}
+function today(){return fmt(new Date())}
+function getCat(id){return cats.find(c=>c.id===id)||cats[0]||DEFAULT_CATS[0]}
+function getPal(p){return PALETTE[p%PALETTE.length]||PALETTE[0]}
+function isOverdue(t){if(t.done)return false;const e=t.end||t.start;return!!e&&e<today()}
+function taskInRange(t,s,e){const ts=t.start||t.end,te=t.end||t.start;if(!ts)return false;return ts<=e&&te>=s}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function mdEsc(s){return String(s).replace(/\|/g,'｜')}
+
+function getPeriodLabel(){
+  if(view==='cal')return curDate.getFullYear()+'年 '+(curDate.getMonth()+1)+'月';
+  if(view==='week'){
+    const d=new Date(curDate),mon=new Date(d);mon.setDate(d.getDate()-d.getDay());
+    const sun=new Date(mon);sun.setDate(mon.getDate()+6);
+    return mon.getFullYear()+'年'+(mon.getMonth()+1)+'月'+p2(mon.getDate())+'日 ～ '+p2(sun.getDate())+'日';
+  }
+  return curDate.getFullYear()+'年'+(curDate.getMonth()+1)+'月';
+}
+
+function renderLegend(){
+  const lg=document.getElementById('legend');
+  lg.innerHTML=cats.map(c=>{
+    const pal=getPal(c.palette);
+    return `<div class="legend-chip" data-cid="${c.id}"><span class="legend-dot" style="background:${pal.dot}"></span>${esc(c.name)}</div>`;
+  }).join('')
+  +`<div class="legend-sep"></div>`
+  +`<div class="legend-add" id="lgn-add"><i class="ti ti-plus" style="font-size:10px;vertical-align:-1px"></i> 新建类别</div>`
+  +`<div class="spacer"></div>`
+  +`<div class="legend-status"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#F7C1C1;margin-right:3px"></span>逾期</div>`
+  +`<div class="legend-status"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#C0DD97;margin-right:3px"></span>完成</div>`;
+  document.getElementById('lgn-add').onclick=()=>openCatModal(null,null);
+  document.querySelectorAll('.legend-chip[data-cid]').forEach(el=>el.onclick=()=>openCatModal(el.dataset.cid,null));
+}
+
+function renderBanner(){
+  const od=tasks.filter(t=>isOverdue(t)),w=document.getElementById('overdue-wrap');
+  if(!od.length){w.innerHTML='';return}
+  w.innerHTML=`<div class="overdue-banner"><i class="ti ti-alert-triangle" style="font-size:16px;flex-shrink:0"></i><b>${od.length} 个任务已逾期：</b>${od.slice(0,3).map(t=>esc(t.name)).join('、')}${od.length>3?'等…':''}</div>`;
+}
+
+function renderAll(){
+  document.getElementById('periodLabel').textContent=getPeriodLabel();
+  renderLegend();renderBanner();
+  const isList=view==='week'||view==='month';
+  document.getElementById('md-panel').style.display=isList?'block':'none';
+  if(view==='cal')renderCal();else{renderList();updateMarkdown();}
+}
+
+/* ── Calendar ── */
+function renderCal(){
+  const area=document.getElementById('main-area');
+  const y=curDate.getFullYear(),m=curDate.getMonth();
+  const dow=new Date(y,m,1).getDay(),dim=new Date(y,m+1,0).getDate(),todayStr=today();
+  const prev=new Date(y,m,0).getDate();
+  const days=['日','一','二','三','四','五','六'];
+  let html=`<div class="calendar-wrap"><div class="calendar-grid">${days.map(d=>`<div class="day-header">${d}</div>`).join('')}`;
+  for(let i=0;i<dow;i++)html+=calCell(y+'-'+p2(m)+'-'+p2(prev-dow+1+i),prev-dow+1+i,true,todayStr);
+  for(let d=1;d<=dim;d++)html+=calCell(y+'-'+p2(m+1)+'-'+p2(d),d,false,todayStr);
+  const rem=Math.ceil((dow+dim)/7)*7-(dow+dim);
+  for(let d=1;d<=rem;d++)html+=calCell(y+'-'+p2(m+2)+'-'+p2(d),d,true,todayStr);
+  html+='</div></div>';area.innerHTML=html;
+  area.querySelectorAll('.day-cell').forEach(el=>{
+    el.addEventListener('click',e=>{if(e.target.closest('.task-chip')||e.target.closest('.more-tasks'))return;openTaskModal(null,el.dataset.date)});
+    el.querySelectorAll('.task-chip').forEach(chip=>chip.addEventListener('click',e=>{e.stopPropagation();openDetail(chip.dataset.tid)}));
+    const mt=el.querySelector('.more-tasks');if(mt)mt.addEventListener('click',e=>{e.stopPropagation();openTaskModal(null,el.dataset.date)});
+  });
+}
+function calCell(ds,num,other,todayStr){
+  const isToday=ds===todayStr;
+  const cls='day-cell'+(other?' other-month':'')+(isToday?' today':'');
+  const dayTasks=tasks.filter(t=>taskInRange(t,ds,ds));const MAX=3;
+  let chips=dayTasks.slice(0,MAX).map(t=>{
+    const od=isOverdue(t),cat=getCat(t.cat),pal=getPal(cat.palette);
+    const bg=t.done?'#C0DD97':od?'#F7C1C1':pal.bg,tc=t.done?'#27500A':od?'#791F1F':pal.text;
+    const pm=PRIO[t.prio||'none'];
+    const prioMark=pm.label&&!t.done?`<span class="chip-prio" style="color:${pm.color}">${pm.label==='高'?'▲':pm.label==='中'?'●':'▼'}</span>`:'';
+    return `<div class="task-chip${t.done?' done':''}" data-tid="${t.id}" style="background:${bg};color:${tc}">${prioMark}<span class="chip-name">${esc(t.name)}</span></div>`;
+  }).join('');
+  if(dayTasks.length>MAX)chips+=`<div class="more-tasks">+${dayTasks.length-MAX} 更多</div>`;
+  return `<div class="${cls}" data-date="${ds}"><span class="day-num">${num}</span>${chips}</div>`;
+}
+
+/* ── List ── */
+function getRange(){
+  if(view==='week'){
+    const d=new Date(curDate),mon=new Date(d);mon.setDate(d.getDate()-d.getDay());
+    const sun=new Date(mon);sun.setDate(mon.getDate()+6);
+    return{s:fmt(mon),e:fmt(sun)};
+  }
+  const y=curDate.getFullYear(),m=curDate.getMonth();
+  return{s:y+'-'+p2(m+1)+'-01',e:y+'-'+p2(m+1)+'-'+p2(new Date(y,m+1,0).getDate())};
+}
+function renderList(){
+  const area=document.getElementById('main-area');
+  const{s,e}=getRange();
+  const all=tasks.filter(t=>taskInRange(t,s,e));
+  const po={high:0,mid:1,low:2,none:3};
+  const sf=(a,b)=>(po[a.prio||'none']-po[b.prio||'none'])||((a.start||'')>(b.start||'')?1:-1);
+  const todo=all.filter(t=>!t.done).sort(sf),done=all.filter(t=>t.done).sort(sf);
+  let html='<div class="list-wrap">';
+  if(!all.length){
+    html+=`<div class="empty-state"><i class="ti ti-calendar-off empty-icon"></i>本期暂无计划，点右上角「添加计划」</div>`;
+  } else {
+    if(todo.length){
+      html+=`<div class="list-section-hd"><i class="ti ti-circle-dashed" style="font-size:14px"></i>未完成 <span style="color:var(--text3);font-weight:400">· ${todo.length} 项</span></div>`;
+      html+=todo.map(listRow).join('');
+    }
+    if(done.length){
+      html+=`<div class="list-section-hd"><i class="ti ti-circle-check" style="font-size:14px;color:#0F6E56"></i>已完成 <span style="color:var(--text3);font-weight:400">· ${done.length} 项</span></div>`;
+      html+=done.map(listRow).join('');
+    }
+  }
+  html+='</div>';area.innerHTML=html;
+  area.querySelectorAll('.list-row').forEach(el=>{
+    el.querySelector('.row-check').addEventListener('click',e=>{
+      e.stopPropagation();const t=tasks.find(x=>x.id===el.dataset.tid);
+      if(t){t.done=!t.done;save();renderAll()}
+    });
+    el.addEventListener('click',()=>openDetail(el.dataset.tid));
+  });
+}
+function listRow(t){
+  const cat=getCat(t.cat),pal=getPal(cat.palette),od=isOverdue(t),pm=PRIO[t.prio||'none'];
+  const dateStr=t.start&&t.end&&t.start!==t.end?`${t.start} ~ ${t.end}`:t.start||'';
+  const check=`<button class="row-check${t.done?' done':''}">${t.done?'<i class="ti ti-check" style="font-size:10px"></i>':''}</button>`;
+  const prio=pm.label?`<span class="badge" style="background:${pm.bg};color:${pm.color}">${pm.emoji} ${pm.label}</span>`:'';
+  const odBadge=od?`<span class="badge" style="background:#FCEBEB;color:#791F1F">⚠️ 逾期</span>`:'';
+  return `<div class="list-row" data-tid="${t.id}">${check}<span class="row-dot" style="background:${pal.dot}"></span><span class="row-name${t.done?' done':''}">${esc(t.name)}</span>${prio}${odBadge}<span class="row-cat-tag">${esc(cat.name)}</span><span class="row-date">${dateStr}</span></div>`;
+}
+
+/* ── Markdown ── */
+function buildMarkdown(){
+  const{s,e}=getRange();
+  const label=getPeriodLabel();
+  const all=tasks.filter(t=>taskInRange(t,s,e));
+  const po={high:0,mid:1,low:2,none:3};
+  const sf=(a,b)=>(po[a.prio||'none']-po[b.prio||'none'])||((a.start||'')>(b.start||'')?1:-1);
+  const todo=all.filter(t=>!t.done).sort(sf),done=all.filter(t=>t.done).sort(sf);
+  const thead=`| 任务名称 | 状态 | 优先级 | 类别 | 日期 | 备注 |\n| :--- | :---: | :---: | :---: | :---: | :--- |\n`;
+  const rowFn=t=>{
+    const pm=PRIO[t.prio||'none'],cat=getCat(t.cat);
+    const dateStr=t.start&&t.end&&t.start!==t.end?`${t.start}~${t.end}`:t.start||'—';
+    const status=t.done?'✅ 完成':isOverdue(t)?'⚠️ 逾期':'🔵 进行中';
+    const prio=pm.label?`${pm.emoji} ${pm.label}`:'—';
+    return `| ${mdEsc(t.name)} | ${status} | ${prio} | ${mdEsc(cat.name)} | ${dateStr} | ${t.note?mdEsc(t.note):'—'} |`;
+  };
+  let md=`# 📅 ${label} 计划表\n\n`;
+  if(!all.length)return md+'> 本期暂无计划\n';
+  if(todo.length)md+=`## 📋 未完成 · ${todo.length} 项\n\n${thead}${todo.map(rowFn).join('\n')}\n\n`;
+  if(done.length)md+=`## ✅ 已完成 · ${done.length} 项\n\n${thead}${done.map(rowFn).join('\n')}\n`;
+  return md;
+}
+function updateMarkdown(){document.getElementById('md-textarea').value=buildMarkdown()}
+
+document.getElementById('md-copy-btn').onclick=function(){
+  const ta=document.getElementById('md-textarea');ta.select();ta.setSelectionRange(0,99999);
+  let ok=false;try{ok=document.execCommand('copy')}catch(e){}
+  if(!ok&&navigator.clipboard)navigator.clipboard.writeText(ta.value).catch(()=>{});
+  const btn=this;btn.classList.add('ok');btn.innerHTML='<i class="ti ti-check" style="font-size:12px"></i> 已复制！';
+  setTimeout(()=>{btn.classList.remove('ok');btn.innerHTML='<i class="ti ti-copy" style="font-size:12px"></i> 全选并复制'},2300);
+};
+
+/* ── Task Modal ── */
+function openTaskModal(tid,defaultDate){
+  editId=tid||null;const t=tid?tasks.find(x=>x.id===tid):null;
+  document.getElementById('modal-title').textContent=t?'编辑计划':'添加计划';
+  document.getElementById('f-name').value=t?t.name:'';
+  document.getElementById('f-start').value=t?t.start:(defaultDate||today());
+  document.getElementById('f-end').value=t?t.end:(defaultDate||today());
+  document.getElementById('f-prio').value=t?(t.prio||'none'):'mid';
+  document.getElementById('f-note').value=t?t.note||'':'';
+  buildCatSelect(t?t.cat:'');
+  document.getElementById('task-modal').style.display='flex';
+  setTimeout(()=>document.getElementById('f-name').focus(),60);
+}
+function buildCatSelect(sel){
+  const el=document.getElementById('f-cat'),prev=el.value;
+  el.innerHTML=cats.map(c=>`<option value="${c.id}"${c.id===(sel||prev)?' selected':''}>${c.name}</option>`).join('');
+}
+
+/* ── Cat Modal ── */
+function openCatModal(cid,cb){
+  editCatId=cid||null;catCb=cb||null;
+  const cat=cid?cats.find(c=>c.id===cid):null;
+  document.getElementById('cat-modal-title').textContent=cat?'编辑类别':'新建类别';
+  document.getElementById('c-name').value=cat?cat.name:'';
+  selPalette=cat?cat.palette:0;buildColorRow();
+  document.getElementById('cat-modal').style.display='flex';
+  setTimeout(()=>document.getElementById('c-name').focus(),60);
+}
+function buildColorRow(){
+  const cr=document.getElementById('color-row');
+  cr.innerHTML=PALETTE.map((p,i)=>`<div class="color-swatch${i===selPalette?' selected':''}" data-pi="${i}" style="background:${p.dot}"></div>`).join('');
+  cr.querySelectorAll('.color-swatch').forEach(sw=>sw.onclick=()=>{selPalette=+sw.dataset.pi;buildColorRow()});
+}
+
+/* ── Detail ── */
+function openDetail(tid){
+  const t=tasks.find(x=>x.id===tid);if(!t)return;
+  const cat=getCat(t.cat),pal=getPal(cat.palette),od=isOverdue(t),pm=PRIO[t.prio||'none'];
+  document.getElementById('d-name').textContent=t.name;
+  const meta=[];
+  meta.push(`<span><i class="ti ti-tag" style="font-size:13px;color:var(--text3)"></i><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${pal.dot}"></span>${cat.name}</span>`);
+  if(t.start&&t.end&&t.start!==t.end)meta.push(`<span><i class="ti ti-calendar-event" style="font-size:13px;color:var(--text3)"></i>${t.start} 至 ${t.end}</span>`);
+  else if(t.start)meta.push(`<span><i class="ti ti-calendar" style="font-size:13px;color:var(--text3)"></i>${t.start}</span>`);
+  if(pm.label)meta.push(`<span><i class="ti ti-flag" style="font-size:13px;color:var(--text3)"></i><span class="badge" style="background:${pm.bg};color:${pm.color}">${pm.emoji} ${pm.label}优先级</span></span>`);
+  if(t.done)meta.push(`<span style="color:#0F6E56;font-weight:600"><i class="ti ti-circle-check" style="font-size:13px"></i> 已完成</span>`);
+  else if(od)meta.push(`<span style="color:#A32D2D;font-weight:600"><i class="ti ti-alert-circle" style="font-size:13px"></i> 已逾期</span>`);
+  document.getElementById('d-meta').innerHTML=meta.join('');
+  const noteEl=document.getElementById('d-note');
+  if(t.note){noteEl.className='detail-note';noteEl.textContent='📝 '+t.note}else{noteEl.className='';noteEl.textContent=''}
+  const acts=document.getElementById('d-actions');acts.innerHTML='';
+  const mk=(cls,icon,lbl,cb)=>{const b=document.createElement('button');b.className=cls;b.innerHTML=`<i class="ti ti-${icon}" style="font-size:12px;vertical-align:-1px;margin-right:4px"></i>${lbl}`;b.onclick=cb;return b};
+  if(!t.done)acts.appendChild(mk('btn-success','check','标记完成',()=>{t.done=true;save();closeDetail();renderAll()}));
+  else acts.appendChild(mk('btn-warn','refresh','撤销完成',()=>{t.done=false;save();closeDetail();renderAll()}));
+  acts.appendChild(mk('btn-sm','edit','编辑',()=>{closeDetail();openTaskModal(tid)}));
+  acts.appendChild(mk('btn-sm','trash','删除',()=>{showConfirm(tid)}));
+  acts.appendChild(mk('btn-sm','x','关闭',closeDetail));
+  document.getElementById('detail-modal').style.display='flex';
+}
+function closeDetail(){document.getElementById('detail-modal').style.display='none'}
+
+/* ── Events ── */
+document.getElementById('m-cancel').onclick=()=>document.getElementById('task-modal').style.display='none';
+document.getElementById('task-modal').onclick=e=>{if(e.target===e.currentTarget)e.currentTarget.style.display='none'};
+document.getElementById('m-save').onclick=()=>{
+  const name=document.getElementById('f-name').value.trim();
+  if(!name){showToast('请输入任务名称');return}
+  const start=document.getElementById('f-start').value,end=document.getElementById('f-end').value||start;
+  const cat=document.getElementById('f-cat').value,prio=document.getElementById('f-prio').value,note=document.getElementById('f-note').value.trim();
+  if(end&&start&&end<start){showToast('结束日期不能早于开始日期');return}
+  if(editId){const t=tasks.find(x=>x.id===editId);if(t)Object.assign(t,{name,start,end,cat,prio,note})}
+  else tasks.push({id:uid(),name,start,end,cat,prio,note,done:false});
+  save();document.getElementById('task-modal').style.display='none';renderAll();
+};
+document.getElementById('new-cat-btn').onclick=()=>{
+  openCatModal(null,(newId)=>{buildCatSelect(newId);document.getElementById('task-modal').style.display='flex'});
+  document.getElementById('task-modal').style.display='none';
+};
+document.getElementById('c-cancel').onclick=()=>{
+  document.getElementById('cat-modal').style.display='none';
+  if(catCb)document.getElementById('task-modal').style.display='flex';
+};
+document.getElementById('cat-modal').onclick=e=>{
+  if(e.target===e.currentTarget){e.currentTarget.style.display='none';if(catCb)document.getElementById('task-modal').style.display='flex';}
+};
+document.getElementById('c-save').onclick=()=>{
+  const name=document.getElementById('c-name').value.trim();
+  if(!name){showToast('请输入类别名称');return}
+  let newId;
+  if(editCatId){const c=cats.find(x=>x.id===editCatId);if(c){c.name=name;c.palette=selPalette;newId=c.id}}
+  else{newId=uid();cats.push({id:newId,name,palette:selPalette})}
+  save();document.getElementById('cat-modal').style.display='none';
+  if(catCb){catCb(newId);catCb=null}else renderAll();
+};
+document.getElementById('detail-modal').onclick=e=>{if(e.target===e.currentTarget)closeDetail()};
+document.querySelectorAll('.view-tab').forEach(tab=>{
+  tab.onclick=()=>{view=tab.dataset.v;document.querySelectorAll('.view-tab').forEach(t=>t.classList.toggle('active',t===tab));renderAll()};
+});
+document.getElementById('prevBtn').onclick=()=>{
+  if(view==='cal'||view==='month'){curDate=new Date(curDate.getFullYear(),curDate.getMonth()-1,1)}
+  else{const d=new Date(curDate);d.setDate(d.getDate()-7);curDate=d}
+  renderAll();
+};
+document.getElementById('nextBtn').onclick=()=>{
+  if(view==='cal'||view==='month'){curDate=new Date(curDate.getFullYear(),curDate.getMonth()+1,1)}
+  else{const d=new Date(curDate);d.setDate(d.getDate()+7);curDate=d}
+  renderAll();
+};
+document.getElementById('todayBtn').onclick=()=>{curDate=new Date();renderAll()};
+document.getElementById('addBtn').onclick=()=>openTaskModal(null,null);
+
+
+/* ── Toast ── */
+function showToast(msg, dur=2200){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer=setTimeout(()=>t.classList.remove('show'),dur);
+}
+
+/* ── Inline confirm for delete ── */
+let _pendingDeleteId=null;
+function showConfirm(tid){
+  _pendingDeleteId=tid;
+  document.getElementById('confirm-box').style.display='block';
+}
+document.getElementById('confirm-yes').onclick=()=>{
+  if(_pendingDeleteId){
+    tasks=tasks.filter(x=>x.id!==_pendingDeleteId);
+    save();_pendingDeleteId=null;
+    document.getElementById('confirm-box').style.display='none';
+    closeDetail();renderAll();
+    showToast('任务已删除');
+  }
+};
+document.getElementById('confirm-no').onclick=()=>{
+  _pendingDeleteId=null;
+  document.getElementById('confirm-box').style.display='none';
+};
+
+/* ── Init ── */
+load();
+if(!tasks.length){
+  const t=today(),yd=fmt(new Date(+new Date()-86400000*3)),nxt=fmt(new Date(+new Date()+86400000*2));
+  tasks=[
+    {id:uid(),name:'完成产品需求文档',start:yd,end:yd,cat:'work',prio:'high',note:'拖了3天了',done:false},
+    {id:uid(),name:'周报撰写',start:t,end:t,cat:'work',prio:'mid',note:'',done:false},
+    {id:uid(),name:'阅读《深度工作》第三章',start:t,end:nxt,cat:'study',prio:'low',note:'',done:false},
+    {id:uid(),name:'健身 30 分钟',start:t,end:t,cat:'health',prio:'none',note:'',done:true},
+  ];
+  save();
+}
+renderAll();
+</script>
+</body>
+</html>
